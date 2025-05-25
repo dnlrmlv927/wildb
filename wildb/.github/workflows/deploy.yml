@@ -1,0 +1,25 @@
+name: Deploy files to Airflow server
+
+on:
+  push:
+    branches:
+      - main  # Запуск при пуше в main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H 158.160.186.11 >> ~/.ssh/known_hosts
+
+      - name: Deploy files to Airflow folder
+        run: |
+          rsync -avz ./ danilssau6364@158.160.186.11:~/airflow/
