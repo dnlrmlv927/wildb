@@ -10,5 +10,5 @@ def get_clickhouse_client():
         database=Variable.get("CLICKHOUSE_DB", default_var='default'),
         port=int(Variable.get("CLICKHOUSE_PORT", default_var='8443')),
         secure=True,
-        verify=False  # <-- отключаем проверку SSL
+        verify=False
     )

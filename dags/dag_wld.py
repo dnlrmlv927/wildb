@@ -36,7 +36,7 @@ dag = DAG(
     'wb_stocks_monitoring',
     default_args=default_args,
     description='Ежедневный мониторинг остатков WB',
-    schedule_interval='0 23 * * *',
+    schedule_interval='0 20 * * *',
     catchup=False,
     max_active_runs=1,
     tags=['production', 'wb', 'analytics'],
