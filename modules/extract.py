@@ -1,11 +1,11 @@
 import requests
 import time
-from clickhouse_driver import Client
+from clickhouse_connect import get_client
 from typing import List, Optional, Dict, Any
 
 
 class WBETLProcessor:
-    def __init__(self, clickhouse_client: Client):
+    def __init__(self, clickhouse_client):
         self.ch_client = clickhouse_client
 
     def fetch_product_stocks(self, nmId: int) -> Optional[Dict[str, Any]]:
@@ -45,9 +45,10 @@ class WBETLProcessor:
             time.sleep(delay)
 
         if data_to_insert:
-            self.ch_client.execute(
-                "INSERT INTO wb_stocks_buffer (date, nmId, stocks) VALUES",
-                data_to_insert
+            self.ch_client.insert(
+                table='wb_stocks_buffer',
+                data=data_to_insert,
+                column_names=['date', 'nmId', 'stocks']
             )
 
         return len(data_to_insert)
