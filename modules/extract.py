@@ -1,6 +1,6 @@
 import requests
 import time
-from datetime import datetim
+from datetime import datetime
 from clickhouse_connect import get_client
 from typing import List, Optional, Dict, Any
 
