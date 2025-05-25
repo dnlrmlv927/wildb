@@ -1,11 +1,11 @@
 import sys
 sys.path.append('/home/danilssau6364/airflow')
+
 from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from modules.connection import get_clickhouse_client
 from modules.extract import WBETLProcessor
-
 
 def load_wb_stocks(**context) -> None:
     """Задача Airflow для обработки данных"""
