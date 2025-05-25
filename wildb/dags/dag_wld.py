@@ -20,7 +20,7 @@ def load_wb_stocks(**context) -> None:
     context['ti'].xcom_push(key='inserted_rows', value=inserted_rows)
 
 
-# Конфигурация DAG
+# Конфигурация DAG asda
 default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
