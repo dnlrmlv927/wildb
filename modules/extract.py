@@ -1,5 +1,6 @@
 import requests
 import time
+from datetime import datetim
 from clickhouse_connect import get_client
 from typing import List, Optional, Dict, Any
 
@@ -38,10 +39,13 @@ class WBETLProcessor:
         """Основной ETL-процесс"""
         data_to_insert = []
 
+        # Преобразуем строку в datetime.date
+        date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+
         for nmId in nmIds:
             product = self.fetch_product_stocks(nmId)
             if product:
-                data_to_insert.append((date_str, product['nmId'], product['stocks']))
+                data_to_insert.append((date_obj, product['nmId'], product['stocks']))
             time.sleep(delay)
 
         if data_to_insert:
