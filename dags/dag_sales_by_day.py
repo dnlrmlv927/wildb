@@ -35,7 +35,7 @@ def calculate_sales(**context) -> None:
     HAVING SUM(lagStocks - stocks) > 0
     """
 
-    client.execute(query)
+    client.query(query)
 
 
 default_args = {
