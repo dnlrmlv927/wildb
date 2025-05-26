@@ -25,7 +25,6 @@ class WBETLProcessor:
                 for stock in size['stocks']:
                     qty = stock.get('qty')
                     if qty is None:
-                        # Если нет данных по складу, используем 0 или можно использовать часть от totalQuantity
                         qty = 0
 
                     warehouse_stocks.append({
