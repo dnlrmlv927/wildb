@@ -49,5 +49,3 @@ load_task = PythonOperator(
     dag=dag,
 )
 
-# Дополнительные задачи могут быть добавлены здесь
-# example_task >> load_task
