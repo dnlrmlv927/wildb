@@ -22,11 +22,11 @@ def load_wb_stocks(**context) -> None:
     context['ti'].xcom_push(key='inserted_rows', value=inserted_rows)
 
 
-# Конфигурация DAG asda
+# Конфигурация DAG
 default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
-    'start_date': datetime(2023, 11, 1),
+    'start_date': datetime(2025, 5, 25),
     'retries': 2,
     'retry_delay': timedelta(minutes=5),
     'retry_exponential_backoff': True,

@@ -2,7 +2,7 @@ import requests
 import time
 from datetime import datetime
 from clickhouse_connect import get_client
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Tuple
 
 
 class WBETLProcessor:
@@ -10,7 +10,7 @@ class WBETLProcessor:
         self.ch_client = clickhouse_client
 
     def fetch_product_stocks(self, nmId: int) -> Optional[Dict[str, Any]]:
-        """Получение данных об остатках товара с Wildberries"""
+
         url = f'https://card.wb.ru/cards/v2/detail?appType=1&curr=rub&dest=-1257786&spp=99&nm={nmId}'
 
         try:
@@ -18,13 +18,22 @@ class WBETLProcessor:
             response.raise_for_status()
             product = response.json()['data']['products'][0]
 
+            # Собираем информацию по складам
+            warehouse_stocks = []
+            total_stocks = 0
+
+            for size in product['sizes']:
+                for stock in size['stocks']:
+                    warehouse_stocks.append({
+                        'wh': stock['wh'],  # ID склада
+                        'qty': stock['qty']  # Количество на складе
+                    })
+                    total_stocks += stock['qty']
+
             return {
                 'nmId': nmId,
-                'stocks': sum(
-                    stock['qty']
-                    for size in product['sizes']
-                    for stock in size['stocks']
-                )
+                'stocks': total_stocks,
+                'warehouse_stocks': warehouse_stocks
             }
         except Exception as e:
             print(f"Error fetching product {nmId}: {str(e)}")
@@ -36,8 +45,8 @@ class WBETLProcessor:
             date_str: str,
             delay: float = 0.3
     ) -> int:
-        """Основной ETL-процесс"""
-        data_to_insert = []
+        """Основной ETL-процесс с сохранением данных только в буферную таблицу"""
+        buffer_data = []
 
         # Преобразуем строку в datetime.date
         date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
@@ -45,14 +54,22 @@ class WBETLProcessor:
         for nmId in nmIds:
             product = self.fetch_product_stocks(nmId)
             if product:
-                data_to_insert.append((date_obj, product['nmId'], product['stocks']))
+               
+                for stock in product['warehouse_stocks']:
+                    buffer_data.append((
+                        date_obj,
+                        product['nmId'],
+                        stock['wh'],  # warehouse_id
+                        stock['qty']  # stocks
+                    ))
             time.sleep(delay)
 
-        if data_to_insert:
+
+        if buffer_data:
             self.ch_client.insert(
                 table='wb_stocks_buffer',
-                data=data_to_insert,
-                column_names=['date', 'nmId', 'stocks']
+                data=buffer_data,
+                column_names=['date', 'nmId', 'warehouse_id', 'stocks']
             )
 
-        return len(data_to_insert)
+        return len(buffer_data)

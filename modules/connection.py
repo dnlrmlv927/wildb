@@ -2,7 +2,6 @@ from clickhouse_connect import get_client
 from airflow.models import Variable
 
 def get_clickhouse_client():
-    """Возвращает подключение к ClickHouse используя переменные Airflow (через clickhouse-connect с отключенной SSL-проверкой)"""
     return get_client(
         host=Variable.get("CLICKHOUSE_HOST"),
         user=Variable.get("CLICKHOUSE_USER", default_var='default'),
