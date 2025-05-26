@@ -10,7 +10,7 @@ class WBETLProcessor:
         self.ch_client = clickhouse_client
 
     def fetch_product_stocks(self, nmId: int) -> Optional[Dict[str, Any]]:
-
+        """Получение данных об остатках товара с Wildberries с обработкой отсутствующих значений"""
         url = f'https://card.wb.ru/cards/v2/detail?appType=1&curr=rub&dest=-1257786&spp=99&nm={nmId}'
 
         try:
@@ -18,21 +18,24 @@ class WBETLProcessor:
             response.raise_for_status()
             product = response.json()['data']['products'][0]
 
-            # Собираем информацию по складам
             warehouse_stocks = []
-            total_stocks = 0
+            total_stocks = product.get('totalQuantity', 0)  # Берем общее количество, если есть
 
             for size in product['sizes']:
                 for stock in size['stocks']:
+                    qty = stock.get('qty')
+                    if qty is None:
+                        # Если нет данных по складу, используем 0 или можно использовать часть от totalQuantity
+                        qty = 0
+
                     warehouse_stocks.append({
                         'wh': stock['wh'],  # ID склада
-                        'qty': stock['qty']  # Количество на складе
+                        'qty': qty  # Количество на складе (0 если нет данных)
                     })
-                    total_stocks += stock['qty']
 
             return {
                 'nmId': nmId,
-                'stocks': total_stocks,
+                'stocks': total_stocks,  # Общее количество товара
                 'warehouse_stocks': warehouse_stocks
             }
         except Exception as e:
@@ -45,25 +48,33 @@ class WBETLProcessor:
             date_str: str,
             delay: float = 0.3
     ) -> int:
-        """Основной ETL-процесс с сохранением данных только в буферную таблицу"""
+        """Основной ETL-процесс с обработкой отсутствующих данных"""
         buffer_data = []
 
-        # Преобразуем строку в datetime.date
         date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
 
         for nmId in nmIds:
             product = self.fetch_product_stocks(nmId)
             if product:
-
-                for stock in product['warehouse_stocks']:
+                # Если нет данных по складам, но есть totalQuantity
+                if not product['warehouse_stocks'] and product['stocks'] > 0:
+                    # Добавляем запись с warehouse_id = 0 (или другим значением для "неизвестного склада")
                     buffer_data.append((
                         date_obj,
                         product['nmId'],
-                        stock['wh'],  # warehouse_id
-                        stock['qty']  # stocks
+                        0,  # Специальное значение для "неизвестного склада"
+                        product['stocks']
                     ))
-            time.sleep(delay)
+                else:
+                    for stock in product['warehouse_stocks']:
+                        buffer_data.append((
+                            date_obj,
+                            product['nmId'],
+                            stock['wh'],
+                            stock['qty']
+                        ))
 
+            time.sleep(delay)
 
         if buffer_data:
             self.ch_client.insert(
