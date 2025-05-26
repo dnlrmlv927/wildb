@@ -8,7 +8,7 @@ from modules.connection import get_clickhouse_client
 from modules.extract import WBETLProcessor
 
 def load_wb_stocks(**context) -> None:
-    """Задача Airflow для обработки данных"""
+   
     execution_date = context['execution_date']
     date_str = execution_date.strftime('%Y-%m-%d')
 

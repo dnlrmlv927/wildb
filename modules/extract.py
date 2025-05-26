@@ -54,7 +54,7 @@ class WBETLProcessor:
         for nmId in nmIds:
             product = self.fetch_product_stocks(nmId)
             if product:
-               
+
                 for stock in product['warehouse_stocks']:
                     buffer_data.append((
                         date_obj,
