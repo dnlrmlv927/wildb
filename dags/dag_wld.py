@@ -7,10 +7,11 @@ from airflow.operators.python import PythonOperator
 from modules.connection import get_clickhouse_client
 from modules.extract import WBETLProcessor
 
-def load_wb_stocks(**context) -> None:
 
-    execution_date = context['execution_date']
-    date_str = execution_date.strftime('%Y-%m-%d')
+def load_wb_stocks(**context) -> None:
+    # конец интервала выполнения как дату данных
+    data_date = context['data_interval_end'].date()  # Получаем только дату
+    date_str = data_date.strftime('%Y-%m-%d')
 
     processor = WBETLProcessor(get_clickhouse_client())
     inserted_rows = processor.process_products(
@@ -18,7 +19,6 @@ def load_wb_stocks(**context) -> None:
                267672429, 265116995, 268759087, 284439349, 274048350],
         date_str=date_str
     )
-
     context['ti'].xcom_push(key='inserted_rows', value=inserted_rows)
 
 

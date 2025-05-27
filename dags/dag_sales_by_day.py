@@ -12,7 +12,8 @@ def calculate_sales(**context) -> None:
     client = get_clickhouse_client()
 
     query = """
-    INSERT INTO warehouse_balances.sales_by_day
+    -- Вставляем только новые данные, которых еще нет в целевой таблице
+INSERT INTO warehouse_balances.sales_by_day
 WITH 
 -- Определяем последнюю дату в данных
 date_range AS (
@@ -85,15 +86,24 @@ all_sales AS (
     SELECT date, nmId, orders FROM regular_sales
     UNION ALL
     SELECT date, nmId, orders FROM missing_warehouse_sales
+),
+
+-- Получаем итоговые данные для вставки
+new_data_to_insert AS (
+    SELECT 
+        (SELECT current_date FROM date_range) AS date,
+        p.nmId,
+        COALESCE(s.orders, 0) AS orders
+    FROM all_products p
+    LEFT JOIN all_sales s ON p.nmId = s.nmId
 )
 
--- Соединяем со всеми товарами, чтобы получить полное покрытие
-SELECT 
-    (SELECT current_date FROM date_range) AS date,
-    p.nmId,
-    COALESCE(s.orders, 0) AS orders
-FROM all_products p
-LEFT JOIN all_sales s ON p.nmId = s.nmId;
+-- Вставляем только те записи, которых еще нет таблице
+SELECT nd.date, nd.nmId, nd.orders
+FROM new_data_to_insert nd
+LEFT ANTI JOIN warehouse_balances.sales_by_day sb 
+    ON nd.date = sb.date AND nd.nmId = sb.nmId
+WHERE nd.date IS NOT NULL;
     """
 
     client.query(query)
