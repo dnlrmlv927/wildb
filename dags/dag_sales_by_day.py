@@ -14,7 +14,7 @@ def calculate_sales(**context) -> None:
     query = """
     INSERT INTO warehouse_balances.sales_by_day
 WITH 
-
+-- Определяем последнюю дату в данных
 date_range AS (
     SELECT 
         max(date) AS current_date,
@@ -22,9 +22,16 @@ date_range AS (
     FROM warehouse_balances.wb_stocks_main
 ),
 
+-- Все товары, которые были в предыдущий день (для полного покрытия)
+all_products AS (
+    SELECT DISTINCT nmId
+    FROM warehouse_balances.wb_stocks_main
+    WHERE date = (SELECT previous_date FROM date_range)
+),
 
+-- Получаем все уникальные пары nmId и warehouse_id за предыдущий день
 yesterday_warehouses AS (
-    SELECT DISTINCT 
+    SELECT 
         nmId, 
         warehouse_id,
         sum(stocks) AS total_stocks
@@ -33,7 +40,7 @@ yesterday_warehouses AS (
     GROUP BY nmId, warehouse_id
 ),
 
-
+-- Получаем данные за текущий день (последнюю дату)
 today_data AS (
     SELECT
         date,
@@ -49,7 +56,7 @@ today_data AS (
     WHERE date = (SELECT current_date FROM date_range)
 ),
 
-
+-- Рассчитываем продажи по складам, которые есть в обоих отчетах
 regular_sales AS (
     SELECT
         date,
@@ -61,7 +68,7 @@ regular_sales AS (
     HAVING SUM(lagStocks - stocks) > 0
 ),
 
-
+-- Рассчитываем "продажи" по складам, которые были вчера, но отсутствуют сегодня
 missing_warehouse_sales AS (
     SELECT
         (SELECT current_date FROM date_range) AS date,
@@ -71,12 +78,22 @@ missing_warehouse_sales AS (
     LEFT ANTI JOIN today_data t ON y.nmId = t.nmId AND y.warehouse_id = t.warehouse_id
     GROUP BY y.nmId
     HAVING SUM(y.total_stocks) > 0
+),
+
+-- Объединяем все продажи
+all_sales AS (
+    SELECT date, nmId, orders FROM regular_sales
+    UNION ALL
+    SELECT date, nmId, orders FROM missing_warehouse_sales
 )
 
-
-SELECT date, nmId, orders FROM regular_sales
-UNION ALL
-SELECT date, nmId, orders FROM missing_warehouse_sales;
+-- Соединяем со всеми товарами, чтобы получить полное покрытие
+SELECT 
+    (SELECT current_date FROM date_range) AS date,
+    p.nmId,
+    COALESCE(s.orders, 0) AS orders
+FROM all_products p
+LEFT JOIN all_sales s ON p.nmId = s.nmId;
     """
 
     client.query(query)
