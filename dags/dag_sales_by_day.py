@@ -13,26 +13,70 @@ def calculate_sales(**context) -> None:
 
     query = """
     INSERT INTO warehouse_balances.sales_by_day
+WITH 
+
+date_range AS (
+    SELECT 
+        max(date) AS current_date,
+        current_date - 1 AS previous_date
+    FROM warehouse_balances.wb_stocks_main
+),
+
+
+yesterday_warehouses AS (
+    SELECT DISTINCT 
+        nmId, 
+        warehouse_id,
+        sum(stocks) AS total_stocks
+    FROM warehouse_balances.wb_stocks_main
+    WHERE date = (SELECT previous_date FROM date_range)
+    GROUP BY nmId, warehouse_id
+),
+
+
+today_data AS (
     SELECT
         date,
         nmId,
-        SUM(lagStocks - stocks) AS orders
-    FROM (
-        SELECT
-            date,
-            nmId,
-            warehouse_id,
-            stocks,
-            any(stocks) OVER (
-                PARTITION BY nmId, warehouse_id
-                ORDER BY date
-                ROWS BETWEEN 1 PRECEDING AND 1 PRECEDING
-            ) AS lagStocks
-        FROM warehouse_balances.wb_stocks_main
-    )
+        warehouse_id,
+        stocks,
+        any(stocks) OVER (
+            PARTITION BY nmId, warehouse_id
+            ORDER BY date
+            ROWS BETWEEN 1 PRECEDING AND 1 PRECEDING
+        ) AS lagStocks
+    FROM warehouse_balances.wb_stocks_main
+    WHERE date = (SELECT current_date FROM date_range)
+),
+
+
+regular_sales AS (
+    SELECT
+        date,
+        nmId,
+        toInt64(SUM(lagStocks - stocks)) AS orders
+    FROM today_data
     WHERE lagStocks IS NOT NULL AND lagStocks >= stocks
     GROUP BY date, nmId
     HAVING SUM(lagStocks - stocks) > 0
+),
+
+
+missing_warehouse_sales AS (
+    SELECT
+        (SELECT current_date FROM date_range) AS date,
+        y.nmId,
+        toInt64(SUM(y.total_stocks)) AS orders
+    FROM yesterday_warehouses y
+    LEFT ANTI JOIN today_data t ON y.nmId = t.nmId AND y.warehouse_id = t.warehouse_id
+    GROUP BY y.nmId
+    HAVING SUM(y.total_stocks) > 0
+)
+
+
+SELECT date, nmId, orders FROM regular_sales
+UNION ALL
+SELECT date, nmId, orders FROM missing_warehouse_sales;
     """
 
     client.query(query)
@@ -50,7 +94,7 @@ dag = DAG(
     'wb_calculate_sales',
     default_args=default_args,
     description='Расчет продаж WB после загрузки остатков',
-    schedule_interval='0 1 * * *',  # 01:00 ночи каждый день
+    schedule_interval='0 1 * * *',
     catchup=False,
     max_active_runs=1,
     tags=['wb', 'sales', 'dependent'],
@@ -61,7 +105,7 @@ wait_for_stocks_load = ExternalTaskSensor(
     external_dag_id='wb_stocks_monitoring',
     external_task_id='load_wb_stocks_data',
     execution_delta=timedelta(hours=4),
-    timeout=3600,  # ждать максимум 1 час
+    timeout=3600,
     mode='poke',
     dag=dag,
 )
@@ -73,4 +117,4 @@ calculate_sales_task = PythonOperator(
     dag=dag,
 )
 
-wait_for_stocks_load >> calculate_sales_task  # зависимость
+wait_for_stocks_load >> calculate_sales_task

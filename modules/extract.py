@@ -10,7 +10,7 @@ class WBETLProcessor:
         self.ch_client = clickhouse_client
 
     def fetch_product_stocks(self, nmId: int) -> Optional[Dict[str, Any]]:
-        """Получение данных об остатках товара с Wildberries с обработкой отсутствующих значений"""
+
         url = f'https://card.wb.ru/cards/v2/detail?appType=1&curr=rub&dest=-1257786&spp=99&nm={nmId}'
 
         try:
@@ -49,7 +49,7 @@ class WBETLProcessor:
             date_str: str,
             delay: float = 0.3
     ) -> int:
-        """Основной ETL-процесс с обработкой отсутствующих данных"""
+
         buffer_data = []
         date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
 
