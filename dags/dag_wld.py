@@ -30,7 +30,7 @@ def is_buffer_empty(**context):
     """
     result = client.query(query)
     # Используем .rows для получения строк результата
-    return result.rows[0][0] == 0
+    return result.result_set[0][0] == 0
 
 
 def calculate_sales(**context):
