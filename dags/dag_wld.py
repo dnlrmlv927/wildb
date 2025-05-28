@@ -72,7 +72,7 @@ def calculate_sales(**context):
                 ROWS BETWEEN 1 PRECEDING AND 1 PRECEDING
             ) AS lagStocks
         FROM warehouse_balances.wb_stocks_main
-        WHERE date = (SELECT current_date FROM date_range)
+        WHERE date = (SELECT current_date FROM date_range) OR date = (SELECT previous_date FROM date_range)
     ),
     regular_sales AS (
         SELECT
