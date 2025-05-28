@@ -22,7 +22,7 @@ def load_wb_stocks(**context):
 
 def is_buffer_empty(**context):
     client = get_clickhouse_client()
-    execution_date = context['execution_date'].date()
+    execution_date = context['logical_date'].date()
     query = f"""
         SELECT count() 
         FROM warehouse_balances.wb_stocks_buffer 
@@ -33,7 +33,7 @@ def is_buffer_empty(**context):
 
 def calculate_sales(**context):
     client = get_clickhouse_client()
-    execution_date = context['execution_date'].date()
+    execution_date = context['logical_date'].date()
     date_str = execution_date.strftime('%Y-%m-%d')
 
     query = f"""
