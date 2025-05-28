@@ -29,7 +29,9 @@ def is_buffer_empty(**context):
         WHERE date = '{execution_date}'
     """
     result = client.query(query)
-    return result[0][0] == 0
+    # Используем .rows для получения строк результата
+    return result.rows[0][0] == 0
+
 
 def calculate_sales(**context):
     client = get_clickhouse_client()
