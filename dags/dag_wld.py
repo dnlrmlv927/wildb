@@ -28,7 +28,7 @@ def is_buffer_empty(**context):
         FROM warehouse_balances.wb_stocks_buffer 
         WHERE date = '{execution_date}'
     """
-    result = client.execute(query)
+    result = client.query(query)
     return result[0][0] == 0
 
 def calculate_sales(**context):
@@ -112,7 +112,7 @@ def calculate_sales(**context):
     WHERE nd.date IS NOT NULL;
     """
 
-    client.execute(query)
+    client.query(query)
 
 default_args = {
     'owner': 'airflow',
