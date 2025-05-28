@@ -136,14 +136,12 @@ dag = DAG(
 load_task = PythonOperator(
     task_id='load_wb_stocks_data',
     python_callable=load_wb_stocks,
-    provide_context=True,
     dag=dag,
 )
 
 buffer_sensor = PythonSensor(
     task_id='check_buffer_empty',
     python_callable=is_buffer_empty,
-    provide_context=True,
     poke_interval=30,
     timeout=3600,
     mode='poke',
@@ -153,7 +151,6 @@ buffer_sensor = PythonSensor(
 calculate_sales_task = PythonOperator(
     task_id='calculate_daily_sales',
     python_callable=calculate_sales,
-    provide_context=True,
     dag=dag,
 )
 
