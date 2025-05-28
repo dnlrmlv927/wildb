@@ -26,10 +26,10 @@ class WBETLProcessor:
                 stocks = size.get('stocks', [])
                 for stock in stocks:
                     qty = stock.get('qty', 0)
-                    wh = stock.get('wh', 0)  # на случай, если поля нет
+                    wh = stock.get('wh', 0)  # на случай если поля нет
                     warehouse_stocks.append({'wh': wh, 'qty': qty})
 
-            # Если нет данных по складам вообще — добавим одну запись с нулями
+            # Если нет данных по складам вообще добавим одну запись с нулями
             if not warehouse_stocks:
                 warehouse_stocks.append({'wh': 0, 'qty': 0})
 

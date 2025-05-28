@@ -128,7 +128,7 @@ default_args = {
 dag = DAG(
     'wb_data_pipeline',
     default_args=default_args,
-    description='Объединённый DAG для загрузки остатков и расчёта продаж WB',
+    description='DAG для загрузки остатков и расчёта продаж WB',
     schedule_interval='0 20 * * *',
     catchup=False,
     max_active_runs=1,
