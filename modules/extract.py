@@ -68,7 +68,7 @@ class WBETLProcessor:
 
         if buffer_data:
             self.ch_client.insert(
-                table='wb_stocks_buffer',
+                table='exmpl_buffer',
                 data=buffer_data,
                 column_names=['date', 'nmId', 'warehouse_id', 'stocks']
             )

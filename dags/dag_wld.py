@@ -25,7 +25,7 @@ def is_buffer_empty(**context):
     execution_date = context['logical_date'].date()
     query = f"""
         SELECT count() 
-        FROM warehouse_balances.wb_stocks_buffer 
+        FROM warehouse_balances.exmpl_buffer 
         WHERE date = '{execution_date}'
     """
     result = client.query(query)
@@ -39,7 +39,7 @@ def calculate_sales(**context):
     date_str = execution_date.strftime('%Y-%m-%d')
 
     query = f"""
-    INSERT INTO warehouse_balances.sales_by_day
+    INSERT INTO warehouse_balances.exmpl_sales_by_day
     WITH 
     date_range AS (
         SELECT 
@@ -48,7 +48,7 @@ def calculate_sales(**context):
     ),
     all_products AS (
         SELECT DISTINCT nmId
-        FROM warehouse_balances.wb_stocks_main
+        FROM warehouse_balances.exmpl_main
         WHERE date = (SELECT previous_date FROM date_range)
     ),
     yesterday_warehouses AS (
@@ -56,7 +56,7 @@ def calculate_sales(**context):
             nmId, 
             warehouse_id,
             sum(stocks) AS total_stocks
-        FROM warehouse_balances.wb_stocks_main
+        FROM warehouse_balances.exmpl_main
         WHERE date = (SELECT previous_date FROM date_range)
         GROUP BY nmId, warehouse_id
     ),
@@ -71,7 +71,7 @@ def calculate_sales(**context):
                 ORDER BY date
                 ROWS BETWEEN 1 PRECEDING AND 1 PRECEDING
             ) AS lagStocks
-        FROM warehouse_balances.wb_stocks_main
+        FROM warehouse_balances.exmpl_main
         WHERE date = (SELECT current_date FROM date_range) OR date = (SELECT previous_date FROM date_range)
     ),
     regular_sales AS (
@@ -109,7 +109,7 @@ def calculate_sales(**context):
     )
     SELECT nd.date, nd.nmId, nd.orders
     FROM new_data_to_insert nd
-    LEFT ANTI JOIN warehouse_balances.sales_by_day sb 
+    LEFT ANTI JOIN warehouse_balances.exmpl_sales_by_day sb 
         ON nd.date = sb.date AND nd.nmId = sb.nmId
     WHERE nd.date IS NOT NULL;
     """
