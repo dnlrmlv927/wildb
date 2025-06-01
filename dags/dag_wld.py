@@ -20,17 +20,21 @@ def load_wb_stocks(**context):
     )
     context['ti'].xcom_push(key='inserted_rows', value=inserted_rows)
 
+
 def is_buffer_empty(**context):
     client = get_clickhouse_client()
-    execution_date = context['logical_date'].date()
-    query = f"""
-        SELECT count() 
-        FROM warehouse_balances.exmpl_buffer 
-        WHERE date = '{execution_date}'
+    query = """
+        SELECT total_bytes 
+        FROM system.tables 
+        WHERE database = 'warehouse_balances' AND name = 'exmpl_buffer'
     """
     result = client.query(query)
-    # Используем .rows для получения строк результата
-    return result.result_set[0][0] == 0
+
+    # Проверяем наличие результатов и что total_bytes равен 0
+    if result.result_set and len(result.result_set) > 0:
+        total_bytes = result.result_set[0][0]  # Получаем значение total_bytes
+        context['ti'].xcom_push(key='buffer_size_bytes', value=total_bytes)
+        return total_bytes == 0
 
 
 def calculate_sales(**context):
