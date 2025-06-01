@@ -39,7 +39,7 @@ def is_buffer_empty(**context):
 
 def calculate_sales(**context):
     client = get_clickhouse_client()
-    execution_date = context['logical_date'].date()
+    execution_date = context['data_interval_end'].date()
     date_str = execution_date.strftime('%Y-%m-%d')
 
     query = f"""
